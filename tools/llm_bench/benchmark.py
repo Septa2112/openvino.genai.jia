@@ -131,6 +131,14 @@ def get_argparser():
         "--load_config",
         default=None,
         required=False,
+        help="""[DEPRECATED] please, use --ov-config \n
+        Path to JSON file or string in JSON format to load customized OpenVINO Runtime configurations.\n """,
+    )
+    parser.add_argument(
+        "-ov-c",
+        "--ov-config",
+        default=None,
+        required=False,
         help="""Path to JSON file or string in JSON format to load customized OpenVINO Runtime configurations.\n
         Example for OpenVINO: {"INFERENCE_PRECISION_HINT": "f32", "KV_CACHE_PRECISION": "f32", "DYNAMIC_QUANTIZATION_GROUP_SIZE": 0}\n
         Additional option for OpenVINO GenAI: {"ATTENTION_BACKEND": "SDPA"}\n
@@ -179,7 +187,7 @@ def get_argparser():
     parser.add_argument(
         "--memory_sampler",
         default="base",
-        choices=["base", "win-gpu", "full"],
+        choices=["base", "win-gpu", "full", "mac"],
         type=str.lower,  # normalise e.g. 'WIN-GPU'/'Full' -> 'win-gpu'/'full' before choices validation
         required=False,
         help="Memory sampler implementation to use when process-based monitoring is active\n"
@@ -199,7 +207,11 @@ def get_argparser():
         "  full           — MemorySamplerFull: same RAM metrics as base plus uss, pss\n"
         "                   and swap from psutil.memory_full_info() (reads /proc smaps).\n"
         "                   More accurate 'real' footprint but slower. Linux only;\n"
-        "                   falls back to MemorySamplerBase on other platforms.",
+        "                   on macOS falls back to mac, elsewhere to base.\n"
+        "  mac            — MemorySamplerMac: same RAM metrics as base plus foot, the\n"
+        "                   physical footprint from libproc proc_pid_rusage (what\n"
+        "                   Activity Monitor shows: incl. compressed and GPU/Metal\n"
+        "                   memory). macOS only; falls back to base on other platforms.",
     )
     parser.add_argument("-bs", "--batch_size", type=int, default=1, required=False, help="Batch size value")
     parser.add_argument(
@@ -285,7 +297,7 @@ def get_argparser():
         "--use_cb",
         action="store_true",
         help="Deprecated, will be removed soon! Continues batching mode is used by default. "
-        'To switch to SPDA mode, please, set up {"ATTENTION_BACKEND": "SDPA"} in --load_config.',
+        'To switch to SPDA mode, please, set up {"ATTENTION_BACKEND": "SDPA"} in --ov-config.',
     )
     parser.add_argument(
         "--cb_config",
@@ -307,6 +319,12 @@ def get_argparser():
         required=False,
         default=None,
         help="Path to file with Continuous Batching Scheduler settings or dict for Speculative decoding of draft model",
+    )
+    parser.add_argument(
+        "--draft-ov-config",
+        default=None,
+        required=False,
+        help="""Path to JSON file or string in JSON format to load customized OpenVINO Runtime configurations for draft model """,
     )
     parser.add_argument(
         "--num_assistant_tokens",
@@ -517,6 +535,26 @@ def get_argparser():
         help=(
             "Speech voice for text-to-speech models. For Kokoro defaults to af_heart. For Qwen3-Omni defaults to Ethan."
         ),
+    )
+    parser.add_argument(
+        "--speech_instruct",
+        type=str,
+        default="",
+        help="Instruction text for Qwen3-TTS VoiceDesign/CustomVoice models.",
+    )
+    parser.add_argument(
+        "--speech_ref_audio",
+        dest="speech_ref_audio",
+        type=str,
+        default="",
+        help="Reference WAV file path for Qwen3-TTS Base voice cloning (required for Base models).",
+    )
+    parser.add_argument(
+        "--speech_ref_text",
+        dest="speech_ref_text",
+        type=str,
+        default="",
+        help="Optional reference transcript for Qwen3-TTS Base ICL mode.",
     )
     parser.add_argument(
         "-vf",

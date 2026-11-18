@@ -13,7 +13,7 @@ from transformers import (
     SpeechT5HifiGan,
     AutoModelForSequenceClassification
 )
-from diffusers.pipelines import DiffusionPipeline, LDMSuperResolutionPipeline, LTXPipeline, LTXImageToVideoPipeline
+from diffusers.pipelines import DiffusionPipeline, LDMSuperResolutionPipeline, LTXImageToVideoPipeline
 from optimum.intel.openvino import (
     OVModelForCausalLM,
     OVModelForSeq2SeqLM,
@@ -25,7 +25,7 @@ from optimum.intel.openvino import (
     OVModelForFeatureExtraction,
     OVModelForTextToSpeechSeq2Seq,
     OVModelForSequenceClassification,
-    OVLTXPipeline,
+    OVPipelineForText2Video,
 )
 
 try:
@@ -34,9 +34,9 @@ except ImportError:
     OVModelForMultimodalLM = None
 
 try:
-    from optimum.intel.openvino import OVLTXImageToVideoPipeline
+    from optimum.intel.openvino import OVPipelineForImage2Video
 except ImportError:
-    OVLTXImageToVideoPipeline = None
+    OVPipelineForImage2Video = None
 from llm_bench_utils.ov_model_classes import OVMPTModel, OVLDMSuperResolutionPipeline, OVChatGLMModel
 from dataclasses import dataclass, field
 
@@ -67,14 +67,14 @@ class UseCaseImageGen(UseCase):
 @dataclass
 class UseCaseVideoGen(UseCase):
     task = "video_gen"
-    ov_cls: type | None = OVLTXPipeline
-    pt_cls: type | None = LTXPipeline
+    ov_cls: type | None = OVPipelineForText2Video
+    pt_cls: type | None = DiffusionPipeline
 
     TASK = {
-        "text2video": {"name": "text-to-video", "ov_cls": OVLTXPipeline, "pt_cls": LTXPipeline},
+        "text2video": {"name": "text-to-video", "ov_cls": OVPipelineForText2Video, "pt_cls": DiffusionPipeline},
         "image2video": {
             "name": "image-to-video",
-            "ov_cls": OVLTXImageToVideoPipeline,
+            "ov_cls": OVPipelineForImage2Video,
             "pt_cls": LTXImageToVideoPipeline,
         },
     }
@@ -182,7 +182,8 @@ USE_CASES = {
     "image_gen": [
         UseCaseImageGen(
             ["stable-diffusion-", "ssd-", "tiny-sd", "small-sd", "lcm-", "sdxl", "dreamlike", "flux", "z-image"]
-        )
+        ),
+        UseCaseImageGen(["qwenimage21"], tokenizer_cls=AutoProcessor),
     ],
     "video_gen": [UseCaseVideoGen(["ltx"])],
     "visual_text_gen": [
@@ -194,6 +195,7 @@ USE_CASES = {
                 "llava-qwen2",
                 "internvl-chat",
                 "minicpmv",
+                "minicpmv4-7",
                 "phi3-v",
                 "minicpm-v",
                 "minicpmo",
@@ -202,14 +204,16 @@ USE_CASES = {
                 "smolvlm",
                 "qwen3-vl",
                 "qwen3-5",
+                "qwen4-exp",
                 "videochat-flash-qwen",
                 "gemma4",
+                "mistral3",
             ]
         ),
         UseCaseVLM(["qwen3-omni"], ov_cls=OVModelForMultimodalLM),
     ],
     "speech_to_text": [
-        UseCaseSpeech2Text(["whisper", "qwen3-asr", "fun-asr"]),
+        UseCaseSpeech2Text(["whisper", "qwen3-asr", "fun-asr", "sense-voice"]),
         UseCaseSpeech2Text(["qwen3-omni"], ov_cls=OVModelForMultimodalLM),
     ],
     "image_cls": [UseCaseImageCls(["vit"])],
@@ -299,6 +303,7 @@ USE_CASES = {
     "text_rerank": [UseCaseTextReranker(["qwen3", "bge", "bert", "albert", "roberta", "xlm-roberta"])],
     "text_to_speech": [
         UseCaseTextToSpeech(["speecht5", "kokoro"]),
+        UseCaseTextToSpeech(["qwen3-tts"], tokenizer_cls=AutoProcessor),
         UseCaseTextToSpeech(["qwen3-omni"], ov_cls=OVModelForMultimodalLM, tokenizer_cls=AutoProcessor),
     ],
 }
