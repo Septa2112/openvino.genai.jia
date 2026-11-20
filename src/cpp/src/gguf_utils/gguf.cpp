@@ -307,13 +307,6 @@ std::vector<std::string> get_all_files(std::string file, int total_num) {
     return files;
 }
 
-std::unordered_map<std::string, GGUFMetaData> get_gguf_metadata(const std::string& file) {
-    check_file(file);
-    std::unique_ptr<gguf_ctx, decltype(&gguf_close)> ctx(gguf_open(file.data()), gguf_close);
-    OPENVINO_ASSERT(ctx, "Failed to open '", file, "' with gguf_open");
-    return load_metadata(ctx.get());
-}
-
 GGUFLoad get_gguf_data(const std::string& file) {
     std::unordered_map<std::string, ov::Tensor> arrays;
     std::unordered_map<std::string, gguf_tensor_type> qtype;
@@ -351,6 +344,13 @@ GGUFLoad get_gguf_data(const std::string& file) {
         load_arrays(ctx.get(), arrays, qtype);
         return {metadata, arrays, qtype};
     }
+}
+
+std::unordered_map<std::string, GGUFMetaData> get_gguf_metadata(const std::string& file) {
+    check_file(file);
+    std::unique_ptr<gguf_ctx, decltype(&gguf_close)> ctx(gguf_open(file.data()), gguf_close);
+    OPENVINO_ASSERT(ctx, "Failed to open '", file, "' with gguf_open");
+    return load_metadata(ctx.get());
 }
 
 float metadata_to_float(const std::unordered_map<std::string, GGUFMetaData>& metadata, const std::string& key) {

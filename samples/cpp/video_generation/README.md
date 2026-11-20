@@ -15,11 +15,16 @@ The applications don't have many configuration options to encourage the reader t
 
 ## Download and Convert the Model
 
-The `--upgrade-strategy eager` option is needed to ensure `optimum-intel` is upgraded to the latest version.
 Install [../../export-requirements.txt](../../export-requirements.txt) if model conversion is required.
 
 ```sh
-pip install --upgrade-strategy eager -r ../../export-requirements.txt
+pip install -r ../../export-requirements.txt
+```
+
+Some newer models may require the latest Optimum Intel. If needed, run:
+
+```sh
+pip install "optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@main"
 ```
 
 ### For Text-to-Video
@@ -32,10 +37,9 @@ optimum-cli export openvino --model Lightricks/LTX-Video --task text-to-video --
 
 ### For Image-to-Video
 
-The image-to-video pipeline requires a model exported with optimum-intel from the `main` branch:
+Export the model for the image-to-video pipeline:
 
 ```sh
-pip install "optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@main"
 optimum-cli export openvino --model Lightricks/LTX-Video --weight-format fp32 ltx_video_ov_i2v/FP32
 ```
 
@@ -47,6 +51,14 @@ from optimum.intel.openvino import OVLTXPipeline
 pipeline = OVLTXPipeline.from_pretrained("Lightricks/LTX-Video", export=True, compile=False)
 pipeline.save_pretrained("ltx_video_ov/FP32")
 ```
+
+### For LTX-2.3 (Text-to-Video with Audio)
+
+```sh
+optimum-cli export openvino --model diffusers/LTX-2.3-Diffusers --task text-to-video --weight-format int8 --trust-remote-code ltx_2_3_ov/INT8
+```
+
+LTX-2.3 generates a synchronized audio track, so [`text2video.cpp`](./text2video.cpp) also writes `genai_audio.wav`. Its guidance defaults are read from the converted model and need no configuration; see [`generation_config.hpp`](../../../src/cpp/include/openvino/genai/video_generation/generation_config.hpp) for the `stg_scale` / `modality_scale` knobs that control the extra guidance passes.
 
 ## Sample Descriptions
 
@@ -62,9 +74,14 @@ GPUs usually provide better performance compared to CPUs. Modify the source code
 - **Description:**
   Basic video generation using a text-to-video model. This sample demonstrates how to generate videos from text prompts using the OpenVINO GenAI Text2VideoPipeline. The LTX-Video model is recommended for this sample.
 
-  Recommended models: Lightricks/LTX-Video
+  Recommended models: Lightricks/LTX-Video, diffusers/LTX-2.3-Diffusers
 
 - **Main Feature:** Generate videos from text descriptions with customizable parameters.
+
+- **Output:** `genai_video.avi`; models that generate audio (LTX-2) also write `genai_audio.wav`. To combine both into one file:
+  ```bash
+  ffmpeg -i genai_video.avi -i genai_audio.wav genai_video.mp4
+  ```
 
 - **Run Command:**
   ```bash
@@ -79,9 +96,9 @@ GPUs usually provide better performance compared to CPUs. Modify the source code
 ### Image to Video Sample (`image2video.cpp`)
 
 - **Description:**
-  Image-conditioned video generation using an image-to-video model. This sample demonstrates how to generate videos from a conditioning image and a text prompt using the OpenVINO GenAI Image2VideoPipeline. The generated video's first frame is anchored to the input image. Requires an LTX-Video model exported with optimum-intel from the `main` branch.
+  Image-conditioned video generation using an image-to-video model. This sample demonstrates how to generate videos from a conditioning image and a text prompt using the OpenVINO GenAI Image2VideoPipeline. The generated video's first frame is anchored to the input image. Requires an LTX-Video model exported with optimum-intel.
 
-  Recommended models: Lightricks/LTX-Video (exported with optimum-intel from the `main` branch)
+  Recommended models: Lightricks/LTX-Video
 
 - **Main Feature:** Generate videos that continue naturally from an input image, guided by a text prompt.
 

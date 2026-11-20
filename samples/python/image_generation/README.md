@@ -31,11 +31,15 @@ Users can change the sample code and play with the following generation paramete
 
 ## Download and convert the models and tokenizers
 
-The `--upgrade-strategy eager` option is needed to ensure `optimum-intel` is upgraded to the latest version.
-
 Install [../../export-requirements.txt](../../export-requirements.txt) to convert a model.
 ```sh
-pip install --upgrade-strategy eager -r ../../export-requirements.txt
+pip install -r ../../export-requirements.txt
+```
+
+Some newer models may require the latest Optimum Intel. If needed, run:
+
+```sh
+pip install "optimum-intel @ git+https://github.com/huggingface/optimum-intel.git@main"
 ```
 
 Then, run the export with Optimum CLI:
@@ -230,6 +234,10 @@ To run the sample, download initial image first:
 And then run the sample:
 
 `python image2image.py ./dreamlike_anime_1_0_ov/FP16 'cat wizard, gandalf, lord of the rings, detailed, fantasy, cute, adorable, Pixar, Disney, 8k' cat.png`
+
+Models conditioned on a set of reference images, such as Qwen-Image 2.1, accept several images. They are referred to as `Picture 1`, `Picture 2` and so on in the prompt:
+
+`python image2image.py ./qwen-image-2.1-ov 'Put the cat from Picture 2 next to the capybara from Picture 1' capybara.png cat.png`
 
 The resulting image is:
 

@@ -521,9 +521,15 @@ class TestImageGeneration:
         assert image is not None
 
     @pytest.mark.parametrize(
-        "image_generation_model", [FLUX2_KLEIN_MODEL_ID, QWEN_IMAGE_MODEL_ID, QWEN_IMAGE_21_MODEL_ID], indirect=True
+        "image_generation_model, strength",
+        [
+            (FLUX2_KLEIN_MODEL_ID, 0.8),
+            (QWEN_IMAGE_MODEL_ID, 0.8),
+            (QWEN_IMAGE_21_MODEL_ID, 1.0),
+        ],
+        indirect=["image_generation_model"],
     )
-    def test_image2image(self, image_generation_model):
+    def test_image2image(self, image_generation_model, strength):
         pipe = ov_genai.Image2ImagePipeline(image_generation_model, "CPU")
 
         input_image = get_random_image()
@@ -531,7 +537,7 @@ class TestImageGeneration:
         image = pipe.generate(
             "test prompt",
             input_image,
-            strength=0.8,
+            strength=strength,
             width=64,
             height=64,
             num_inference_steps=2,
@@ -540,9 +546,15 @@ class TestImageGeneration:
         assert image is not None
 
     @pytest.mark.parametrize(
-        "image_generation_model", [FLUX2_KLEIN_MODEL_ID, QWEN_IMAGE_MODEL_ID, QWEN_IMAGE_21_MODEL_ID], indirect=True
+        "image_generation_model, strength",
+        [
+            (FLUX2_KLEIN_MODEL_ID, 0.8),
+            (QWEN_IMAGE_MODEL_ID, 0.8),
+            (QWEN_IMAGE_21_MODEL_ID, 1.0),
+        ],
+        indirect=["image_generation_model"],
     )
-    def test_image2image_with_callback(self, image_generation_model):
+    def test_image2image_with_callback(self, image_generation_model, strength):
         pipe = ov_genai.Image2ImagePipeline(image_generation_model, "CPU")
 
         callback_calls = []
@@ -556,7 +568,7 @@ class TestImageGeneration:
         image = pipe.generate(
             "test prompt",
             input_image,
-            strength=0.8,
+            strength=strength,
             width=64,
             height=64,
             num_inference_steps=2,
@@ -565,6 +577,50 @@ class TestImageGeneration:
 
         assert len(callback_calls) > 0, "Callback should be called at least once"
         assert image is not None
+
+    @pytest.mark.parametrize(
+        "image_generation_model", [FLUX2_KLEIN_MODEL_ID, QWEN_IMAGE_MODEL_ID, QWEN_IMAGE_21_MODEL_ID], indirect=True
+    )
+    def test_image2image_with_list_of_images(self, image_generation_model):
+        pipe = ov_genai.Image2ImagePipeline(image_generation_model, "CPU")
+
+        image = pipe.generate(
+            "test prompt",
+            [get_random_image()],
+            width=64,
+            height=64,
+            num_inference_steps=2,
+        )
+
+        assert image is not None
+
+    @pytest.mark.parametrize("image_generation_model", [QWEN_IMAGE_21_MODEL_ID], indirect=True)
+    def test_image2image_with_several_images(self, image_generation_model):
+        pipe = ov_genai.Image2ImagePipeline(image_generation_model, "CPU")
+
+        image = pipe.generate(
+            "test prompt",
+            [get_random_image(), get_random_image(height=96, width=48)],
+            width=64,
+            height=64,
+            num_inference_steps=2,
+        )
+
+        assert image is not None
+
+    @pytest.mark.parametrize("image_generation_model", [FLUX2_KLEIN_MODEL_ID, QWEN_IMAGE_MODEL_ID], indirect=True)
+    def test_image2image_rejects_several_images(self, image_generation_model):
+        pipe = ov_genai.Image2ImagePipeline(image_generation_model, "CPU")
+
+        with pytest.raises(RuntimeError, match="conditioned on a single"):
+            pipe.generate(
+                "test prompt",
+                [get_random_image(), get_random_image()],
+                strength=0.8,
+                width=64,
+                height=64,
+                num_inference_steps=2,
+            )
 
 
 @pytest.mark.xfail(reason="CVS-178687 z-image is not implemented in optimum-intel yet")
